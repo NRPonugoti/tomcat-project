@@ -1,0 +1,36 @@
+currentBuild.displayName ="tomcat-demo"+currentBuild.number
+pipeline {
+    agent any
+	tools {
+       maven 'mvn_home'
+    }
+
+
+    stages {
+        stage('SCM-Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'gitcredentail', 
+				url: 'https://github.com/NRPonugoti/tomcat-project.git'
+            }
+        }
+		stage('mvn-package') {
+            steps {
+                sh 'mvn clean compile package'
+            }
+        }
+		stage('tomcat-deployment') {
+            steps {
+                sshagent(['tomcat-credential']) {
+                   sh """
+				        scp -o StrictHostKeyChecking=no  target/tomcat-demo.war
+						ec2-user@13.246.13.190:/opt/tomcat/webapps/
+						
+						ssh ec2-user@13.246.13.190 /opt/tomcat/bin/shutdown.sh
+					    ssh ec2-user@13.246.13.190 /opt/tomcat/bin/startup.sh
+					"""
+                }
+            }
+        }
+	
+    }
+}
